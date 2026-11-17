@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id           Int       @id @default(autoincrement())
+  title        String
+  content      String
+  summary      String?
+  reviewPoints String?
+  category     String
+  isPublic     Boolean   @default(false)
+  slug         String    @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  tags         PostTag[]
+}
+
+model StudyNote {
+  id           Int      @id @default(autoincrement())
+  rawContent   String
+  summary      String?
+  keyPoints    String?
+  reviewPoints String?
+  extraContent String?
+  category     String?
+  createdAt    DateTime @default(now())
+}
+
+model Tag {
+  id    Int       @id @default(autoincrement())
+  name  String    @unique
+  posts PostTag[]
+}
+
+model PostTag {
+  postId Int
+  tagId  Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model Activity {
+  id    Int    @id @default(autoincrement())
+  date  String @unique
+  count Int    @default(0)
+}
+
+model ReviewSchedule {
+  id          Int      @id @default(autoincrement())
+  postId      Int?
+  noteId      Int?
+  title       String
+  reviewAt    DateTime
+  interval    Int      @default(1)
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
