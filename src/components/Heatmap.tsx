@@ -11,13 +11,6 @@ interface HeatmapProps {
   selectedDate?: string | null
 }
 
-function getCellColor(count: number): string {
-  if (count === 0) return '#e5e7eb' // gray-200
-  if (count === 1) return '#bfdbfe' // blue-200
-  if (count <= 3) return '#60a5fa' // blue-400
-  return '#2563eb' // blue-600
-}
-
 function toLocalDateStr(date: Date): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -30,52 +23,66 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-const DAYS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function getCellColor(count: number): string {
+  if (count === 0) return '#ebedf0'
+  if (count === 1) return '#9be9a8'
+  if (count <= 3) return '#40c463'
+  if (count <= 6) return '#30a14e'
+  return '#216e39'
+}
+
+const DAY_LABELS = ['Sun', '', 'Tue', '', 'Thu', '', 'Sat']
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const COLS = 53
+const CELL = 11
+const GAP = 2
+const LEFT = 32
+const TOP = 20
 
 export default function Heatmap({ activities, onDateClick, selectedDate }: HeatmapProps) {
-  // Build a map of date -> count
   const activityMap = new Map<string, number>()
   for (const a of activities) {
     activityMap.set(a.date, a.count)
   }
 
-  // Build 364 days ending today, arranged as 52 weeks × 7 days
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayStr = toLocalDateStr(today)
 
-  // Start from the Sunday 364 days ago (round to week start)
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - 363)
-  // Rewind to the most recent Sunday on or before startDate
-  const dayOfWeek = startDate.getDay() // 0=Sun
-  startDate.setDate(startDate.getDate() - dayOfWeek)
+  // 오늘이 속한 주의 일요일을 마지막 컬럼 시작으로
+  const lastSunday = new Date(today)
+  lastSunday.setDate(today.getDate() - today.getDay())
 
-  // Build 52 columns, each 7 cells
-  const weeks: Array<Array<{ date: string; count: number; inRange: boolean }>> = []
-  const monthLabels: Array<{ col: number; month: string }> = []
+  // 52주 전 일요일을 첫 컬럼 시작으로
+  const firstSunday = new Date(lastSunday)
+  firstSunday.setDate(lastSunday.getDate() - (COLS - 1) * 7)
 
-  let seenMonths = new Set<string>()
-  const cursor = new Date(startDate)
+  type Cell = { date: string; count: number; isFuture: boolean }
+  const weeks: Cell[][] = []
+  const monthLabels: { col: number; label: string }[] = []
+  const seenMonths = new Set<string>()
 
-  for (let col = 0; col < 52; col++) {
-    const week: Array<{ date: string; count: number; inRange: boolean }> = []
+  const cursor = new Date(firstSunday)
+
+  for (let col = 0; col < COLS; col++) {
+    const week: Cell[] = []
 
     for (let row = 0; row < 7; row++) {
       const dateStr = toLocalDateStr(cursor)
-      const inRange = cursor >= startDate && cursor <= today
+      const isFuture = cursor > today
       week.push({
         date: dateStr,
         count: activityMap.get(dateStr) ?? 0,
-        inRange,
+        isFuture,
       })
 
-      // Track month label for this column (first day of the week = row 0)
-      if (row === 0 && inRange) {
+      if (row === 0) {
         const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`
-        if (!seenMonths.has(monthKey)) {
+        if (!seenMonths.has(monthKey) && !isFuture) {
           seenMonths.add(monthKey)
-          monthLabels.push({ col, month: MONTHS[cursor.getMonth()] })
+          monthLabels.push({ col, label: MONTH_NAMES[cursor.getMonth()] })
         }
       }
 
@@ -85,24 +92,20 @@ export default function Heatmap({ activities, onDateClick, selectedDate }: Heatm
     weeks.push(week)
   }
 
-  const cellSize = 10
-  const gap = 2
-  const leftOffset = 28 // space for day labels
-  const topOffset = 18  // space for month labels
-
-  const totalWidth = leftOffset + weeks.length * (cellSize + gap)
-  const totalHeight = topOffset + 7 * (cellSize + gap)
+  const totalWidth = LEFT + COLS * (CELL + GAP)
+  const totalHeight = TOP + 7 * (CELL + GAP)
 
   return (
     <div className="overflow-x-auto">
       <div style={{ position: 'relative', width: totalWidth, height: totalHeight, minWidth: totalWidth }}>
+
         {/* Month labels */}
-        {monthLabels.map(({ col, month }) => (
+        {monthLabels.map(({ col, label }, i) => (
           <span
-            key={`${col}-${month}`}
+            key={i}
             style={{
               position: 'absolute',
-              left: leftOffset + col * (cellSize + gap),
+              left: LEFT + col * (CELL + GAP),
               top: 0,
               fontSize: 10,
               color: '#6b7280',
@@ -110,23 +113,23 @@ export default function Heatmap({ activities, onDateClick, selectedDate }: Heatm
               whiteSpace: 'nowrap',
             }}
           >
-            {month}
+            {label}
           </span>
         ))}
 
         {/* Day labels */}
-        {DAYS.map((label, row) =>
+        {DAY_LABELS.map((label, row) =>
           label ? (
             <span
               key={row}
               style={{
                 position: 'absolute',
                 left: 0,
-                top: topOffset + row * (cellSize + gap) + 1,
+                top: TOP + row * (CELL + GAP) + 1,
                 fontSize: 9,
                 color: '#9ca3af',
                 lineHeight: 1,
-                width: leftOffset - 4,
+                width: LEFT - 6,
                 textAlign: 'right',
               }}
             >
@@ -137,37 +140,51 @@ export default function Heatmap({ activities, onDateClick, selectedDate }: Heatm
 
         {/* Cells */}
         {weeks.map((week, col) =>
-          week.map((cell, row) => (
-            <div
-              key={`${col}-${row}`}
-              className="heatmap-cell"
-              title={cell.inRange ? `${formatDate(cell.date)}: ${cell.count}회` : ''}
-              onClick={() => cell.inRange && cell.count > 0 && onDateClick?.(cell.date)}
-              style={{
-                position: 'absolute',
-                left: leftOffset + col * (cellSize + gap),
-                top: topOffset + row * (cellSize + gap),
-                backgroundColor: cell.inRange ? getCellColor(cell.count) : 'transparent',
-                cursor: cell.inRange && cell.count > 0 ? 'pointer' : 'default',
-                outline: selectedDate === cell.date ? '2px solid #1d4ed8' : undefined,
-                outlineOffset: '1px',
-              }}
-            />
-          ))
+          week.map((cell, row) => {
+            const isToday = cell.date === todayStr
+            return (
+              <div
+                key={`${col}-${row}`}
+                title={!cell.isFuture ? `${formatDate(cell.date)}: ${cell.count}회` : ''}
+                onClick={() => !cell.isFuture && cell.count > 0 && onDateClick?.(cell.date)}
+                style={{
+                  position: 'absolute',
+                  left: LEFT + col * (CELL + GAP),
+                  top: TOP + row * (CELL + GAP),
+                  width: CELL - 1,
+                  height: CELL - 1,
+                  borderRadius: 2,
+                  backgroundColor: cell.isFuture ? 'transparent' : getCellColor(cell.count),
+                  cursor: !cell.isFuture && cell.count > 0 ? 'pointer' : 'default',
+                  outline: selectedDate === cell.date
+                    ? '2px solid #1d4ed8'
+                    : isToday
+                    ? '1px solid #6b7280'
+                    : undefined,
+                  outlineOffset: '1px',
+                }}
+              />
+            )
+          })
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-1 mt-2 ml-7">
-        <span className="text-xs text-gray-400 mr-1">Less</span>
-        {[0, 1, 2, 4].map((count) => (
+      <div className="flex items-center gap-1.5 mt-2" style={{ marginLeft: LEFT }}>
+        <span className="text-xs text-gray-400 mr-0.5">Less</span>
+        {[0, 1, 2, 4, 7].map((count) => (
           <div
             key={count}
-            className="heatmap-cell"
-            style={{ backgroundColor: getCellColor(count), position: 'static' }}
+            style={{
+              width: CELL - 1,
+              height: CELL - 1,
+              borderRadius: 2,
+              backgroundColor: getCellColor(count),
+              flexShrink: 0,
+            }}
           />
         ))}
-        <span className="text-xs text-gray-400 ml-1">More</span>
+        <span className="text-xs text-gray-400 ml-0.5">More</span>
       </div>
     </div>
   )
