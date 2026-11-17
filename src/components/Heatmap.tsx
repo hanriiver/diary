@@ -18,6 +18,13 @@ function getCellColor(count: number): string {
   return '#2563eb' // blue-600
 }
 
+function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -55,7 +62,7 @@ export default function Heatmap({ activities, onDateClick, selectedDate }: Heatm
     const week: Array<{ date: string; count: number; inRange: boolean }> = []
 
     for (let row = 0; row < 7; row++) {
-      const dateStr = cursor.toISOString().slice(0, 10)
+      const dateStr = toLocalDateStr(cursor)
       const inRange = cursor >= startDate && cursor <= today
       week.push({
         date: dateStr,

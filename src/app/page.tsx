@@ -16,7 +16,8 @@ async function getStats() {
 
   let streak = 0
   if (activities.length > 0) {
-    const today = new Date().toISOString().slice(0, 10)
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const dateSet = new Set(activities.map((a) => a.date))
     const cursor = new Date()
     if (!dateSet.has(today)) cursor.setDate(cursor.getDate() - 1)
