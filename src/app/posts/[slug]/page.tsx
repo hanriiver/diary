@@ -81,7 +81,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
       {/* Main content */}
       <div
-        className="prose text-sm"
+        className="prose"
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
