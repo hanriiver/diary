@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic'
+
 import { prisma } from '@/lib/prisma'
-import Heatmap from '@/components/Heatmap'
+import HeatmapSection from '@/components/HeatmapSection'
 import PostCard from '@/components/PostCard'
 import ReviewBanner from '@/components/ReviewBanner'
 
@@ -78,7 +80,7 @@ export default async function HomePage() {
         <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
           Activity
         </h2>
-        <Heatmap activities={activities} />
+        <HeatmapSection activities={activities} />
       </div>
 
       {/* Recent posts */}

@@ -45,20 +45,22 @@ export async function GET(request: NextRequest) {
   const tag = searchParams.get('tag')
   const search = searchParams.get('search')
   const isPublicParam = searchParams.get('isPublic')
+  const date = searchParams.get('date')
 
   const posts = await prisma.post.findMany({
     where: {
       ...(category ? { category } : {}),
       ...(isPublicParam !== null ? { isPublic: isPublicParam === 'true' } : {}),
-      ...(tag
-        ? { tags: { some: { tag: { name: tag } } } }
-        : {}),
+      ...(tag ? { tags: { some: { tag: { name: tag } } } } : {}),
       ...(search
+        ? { OR: [{ title: { contains: search } }, { content: { contains: search } }] }
+        : {}),
+      ...(date
         ? {
-            OR: [
-              { title: { contains: search } },
-              { content: { contains: search } },
-            ],
+            createdAt: {
+              gte: new Date(`${date}T00:00:00.000Z`),
+              lt: new Date(`${date}T23:59:59.999Z`),
+            },
           }
         : {}),
     },

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -5,79 +7,6 @@ import PostActions from './PostActions'
 
 interface PostPageProps {
   params: Promise<{ slug: string }>
-}
-
-function renderMarkdown(content: string): string {
-  const lines = content.split('\n')
-  const result: string[] = []
-  let inCodeBlock = false
-  let codeLines: string[] = []
-
-  for (const line of lines) {
-    if (line.startsWith('```')) {
-      if (inCodeBlock) {
-        result.push(`<pre><code>${codeLines.join('\n')}</code></pre>`)
-        codeLines = []
-        inCodeBlock = false
-      } else {
-        inCodeBlock = true
-      }
-      continue
-    }
-
-    if (inCodeBlock) {
-      codeLines.push(line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-      continue
-    }
-
-    // Escape HTML
-    let escaped = line
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-
-    // Headings
-    if (escaped.startsWith('### ')) {
-      result.push(`<h3>${escaped.slice(4)}</h3>`)
-      continue
-    }
-    if (escaped.startsWith('## ')) {
-      result.push(`<h2>${escaped.slice(3)}</h2>`)
-      continue
-    }
-    if (escaped.startsWith('# ')) {
-      result.push(`<h1>${escaped.slice(2)}</h1>`)
-      continue
-    }
-
-    // Inline: bold, code
-    escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    escaped = escaped.replace(/`(.+?)`/g, '<code>$1</code>')
-
-    if (escaped.trim() === '') {
-      result.push('<br/>')
-    } else if (escaped.startsWith('- ') || escaped.startsWith('* ')) {
-      result.push(`<li>${escaped.slice(2)}</li>`)
-    } else {
-      result.push(`<p>${escaped}</p>`)
-    }
-  }
-
-  // Wrap consecutive <li> in <ul>
-  // Group adjacent li elements by scanning linearly
-  const output: string[] = []
-  let inList = false
-  for (const line of result) {
-    if (line.startsWith('<li>')) {
-      if (!inList) { output.push('<ul>'); inList = true }
-      output.push(line)
-    } else {
-      if (inList) { output.push('</ul>'); inList = false }
-      output.push(line)
-    }
-  }
-  if (inList) output.push('</ul>')
-  return output.join('\n')
 }
 
 function formatDate(dateStr: string | Date): string {
@@ -108,7 +37,7 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!post) notFound()
 
   const reviewPoints = parseJsonArray(post.reviewPoints)
-  const html = renderMarkdown(post.content)
+  const html = post.content
 
   return (
     <article>

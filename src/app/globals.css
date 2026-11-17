@@ -102,6 +102,18 @@ body {
   font-weight: 600;
 }
 
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap:focus {
+  outline: none;
+}
+
 .heatmap-cell {
   width: 10px;
   height: 10px;

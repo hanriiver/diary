@@ -42,12 +42,6 @@ export default function RootLayout({
               >
                 Posts
               </Link>
-              <Link
-                href="/notes"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Notes
-              </Link>
             </nav>
           </div>
         </header>

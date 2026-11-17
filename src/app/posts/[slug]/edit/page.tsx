@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
+
+const Editor = dynamic(() => import('@/components/Editor'), { ssr: false })
 
 const CATEGORIES = ['개발', 'CS', '알고리즘', '데이터베이스', '네트워크', '기타']
 
@@ -22,7 +25,6 @@ export default function EditPage() {
   const params = useParams()
   const slug = params.slug as string
 
-  const [post, setPost] = useState<Post | null>(null)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('개발')
   const [tags, setTags] = useState('')
@@ -36,7 +38,6 @@ export default function EditPage() {
     fetch(`/api/posts/${slug}`)
       .then((r) => r.json())
       .then((data: Post) => {
-        setPost(data)
         setTitle(data.title)
         setCategory(data.category)
         setContent(data.content)
@@ -53,10 +54,7 @@ export default function EditPage() {
     setSubmitting(true)
     setError('')
 
-    const tagList = tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean)
+    const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
 
     try {
       const res = await fetch(`/api/posts/${slug}`, {
@@ -67,7 +65,12 @@ export default function EditPage() {
           content,
           category,
           isPublic,
-          tags: { deleteMany: {}, create: tagList.map((name) => ({ tag: { connectOrCreate: { where: { name }, create: { name } } } })) },
+          tags: {
+            deleteMany: {},
+            create: tagList.map((name) => ({
+              tag: { connectOrCreate: { where: { name }, create: { name } } },
+            })),
+          },
         }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -79,13 +82,8 @@ export default function EditPage() {
     }
   }
 
-  if (loading) {
-    return <p className="text-sm text-gray-400">로딩 중...</p>
-  }
-
-  if (!post && error) {
-    return <p className="text-sm text-red-500">{error}</p>
-  }
+  if (loading) return <p className="text-sm text-gray-400">로딩 중...</p>
+  if (error && !title) return <p className="text-sm text-red-500">{error}</p>
 
   return (
     <div>
@@ -139,12 +137,7 @@ export default function EditPage() {
           <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
             내용
           </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={18}
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 font-mono bg-white focus:outline-none focus:border-blue-400 resize-y"
-          />
+          <Editor content={content} onChange={setContent} />
         </div>
 
         <div className="flex items-center gap-2">

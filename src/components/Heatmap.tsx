@@ -7,6 +7,8 @@ interface Activity {
 
 interface HeatmapProps {
   activities: Activity[]
+  onDateClick?: (date: string) => void
+  selectedDate?: string | null
 }
 
 function getCellColor(count: number): string {
@@ -24,7 +26,7 @@ function formatDate(dateStr: string): string {
 const DAYS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-export default function Heatmap({ activities }: HeatmapProps) {
+export default function Heatmap({ activities, onDateClick, selectedDate }: HeatmapProps) {
   // Build a map of date -> count
   const activityMap = new Map<string, number>()
   for (const a of activities) {
@@ -133,11 +135,15 @@ export default function Heatmap({ activities }: HeatmapProps) {
               key={`${col}-${row}`}
               className="heatmap-cell"
               title={cell.inRange ? `${formatDate(cell.date)}: ${cell.count}회` : ''}
+              onClick={() => cell.inRange && cell.count > 0 && onDateClick?.(cell.date)}
               style={{
                 position: 'absolute',
                 left: leftOffset + col * (cellSize + gap),
                 top: topOffset + row * (cellSize + gap),
                 backgroundColor: cell.inRange ? getCellColor(cell.count) : 'transparent',
+                cursor: cell.inRange && cell.count > 0 ? 'pointer' : 'default',
+                outline: selectedDate === cell.date ? '2px solid #1d4ed8' : undefined,
+                outlineOffset: '1px',
               }}
             />
           ))

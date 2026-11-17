@@ -23,7 +23,6 @@ export async function PATCH(
   const next = await prisma.reviewSchedule.create({
     data: {
       postId: current.postId,
-      noteId: current.noteId,
       title: current.title,
       reviewAt: nextReviewAt,
       interval: nextInterval,
